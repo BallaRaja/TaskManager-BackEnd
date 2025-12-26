@@ -5,6 +5,8 @@ import express from "express";
 import cors from "cors";
 import connectDB from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
+import profileRoutes from "./routes/profileRoutes.js";
+
 
 const app = express();
 connectDB();
@@ -15,6 +17,7 @@ app.use(express.json());
 
 //Routes here
 app.use("/api/auth", authRoutes);
+app.use("/api", profileRoutes);
 
 // Health check route (VERY IMPORTANT)
 app.get("/", (req, res) => {
