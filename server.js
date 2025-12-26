@@ -9,10 +9,18 @@ import authRoutes from "./routes/authRoutes.js";
 const app = express();
 connectDB();
 
+// Middleware
 app.use(cors());
 app.use(express.json());
 
+//Routes here
 app.use("/api/auth", authRoutes);
+
+// Health check route (VERY IMPORTANT)
+app.get("/", (req, res) => {
+  res.send("Server is awake 🚀");
+});
+
 
 const PORT = process.env.PORT || 5000;
 
