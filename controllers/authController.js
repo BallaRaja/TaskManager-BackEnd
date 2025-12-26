@@ -17,7 +17,6 @@ export const register = async (req, res) => {
 
 export const login = async (req, res) => {
   console.log("🔐 [LOGIN] Request received");
-  console.log("📧 Email:", req.body.email);
 
   try {
     const { email, password } = req.body;
@@ -28,32 +27,27 @@ export const login = async (req, res) => {
       return res.status(400).json({ error: "User not found" });
     }
 
-    console.log("✅ [LOGIN] User found");
-
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      console.log("❌ [LOGIN] Password mismatch");
+      console.log("❌ [LOGIN] Invalid password");
       return res.status(400).json({ error: "Invalid password" });
     }
 
-    console.log("✅ [LOGIN] Password matched");
-
+    // ✅ JWT contains ONLY userId
     const token = jwt.sign(
-      { id: user._id, email: user.email },
+      { userId: user._id },
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
     );
 
-    console.log("🪪 [JWT] Token generated");
-    console.log("🪪 [JWT] User:", user.email);
+    console.log("🪪 [JWT] Token issued for userId:", user._id.toString());
 
     res.json({
       token,
-      email: user.email,
+      userId: user._id,
     });
   } catch (err) {
     console.log("🔥 [LOGIN] Error:", err.message);
     res.status(500).json({ error: err.message });
   }
 };
-
