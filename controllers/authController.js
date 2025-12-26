@@ -16,18 +16,27 @@ export const register = async (req, res) => {
 };
 
 export const login = async (req, res) => {
+  console.log("🔐 [LOGIN] Request received");
+  console.log("📧 Email:", req.body.email);
+
   try {
     const { email, password } = req.body;
 
     const user = await User.findOne({ email });
     if (!user) {
+      console.log("❌ [LOGIN] User not found");
       return res.status(400).json({ error: "User not found" });
     }
 
+    console.log("✅ [LOGIN] User found");
+
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
+      console.log("❌ [LOGIN] Password mismatch");
       return res.status(400).json({ error: "Invalid password" });
     }
+
+    console.log("✅ [LOGIN] Password matched");
 
     const token = jwt.sign(
       { id: user._id, email: user.email },
@@ -35,11 +44,16 @@ export const login = async (req, res) => {
       { expiresIn: "1d" }
     );
 
+    console.log("🪪 [JWT] Token generated");
+    console.log("🪪 [JWT] User:", user.email);
+
     res.json({
       token,
       email: user.email,
     });
   } catch (err) {
+    console.log("🔥 [LOGIN] Error:", err.message);
     res.status(500).json({ error: err.message });
   }
 };
+
