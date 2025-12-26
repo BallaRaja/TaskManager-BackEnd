@@ -17,7 +17,7 @@ app.use(express.json());
 
 //Routes here
 app.use("/api/auth", authRoutes);
-app.use("/api", profileRoutes);
+app.use("/api/profile", profileRoutes);
 
 // Health check route (VERY IMPORTANT)
 app.get("/", (req, res) => {
