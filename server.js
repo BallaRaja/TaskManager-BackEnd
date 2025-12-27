@@ -6,6 +6,8 @@ import cors from "cors";
 import connectDB from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
 import profileRoutes from "./routes/profileRoutes.js";
+import taskRoutes from "./routes/taskRoutes.js";
+import taskListRoutes from "./routes/taskListRoutes.js";
 
 
 const app = express();
@@ -18,6 +20,8 @@ app.use(express.json());
 //Routes here
 app.use("/api/auth", authRoutes);
 app.use("/api/profile", profileRoutes);
+app.use("/api/task", taskRoutes);
+app.use("/api/taskList", taskListRoutes);
 
 // Health check route (VERY IMPORTANT)
 app.get("/", (req, res) => {
