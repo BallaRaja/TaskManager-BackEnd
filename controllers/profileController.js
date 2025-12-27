@@ -101,7 +101,6 @@ export const updateProfile = async (req, res) => {
             { $set: updates },
             {
                 new: true,
-                runValidators: true,
                 select: '-__v',
             }
         );
