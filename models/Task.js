@@ -68,6 +68,19 @@ const taskSchema = new mongoose.Schema(
             index: true,
         },
 
+        isArchived: {
+            type: Boolean,
+            default: false,
+            index: true,
+        },
+
+        priority: {
+            type: String,
+            enum: ["low", "medium", "high"],
+            default: "medium",
+            index: true,
+        },
+
         completedAt: {
             type: Date,
             default: null,
@@ -75,7 +88,7 @@ const taskSchema = new mongoose.Schema(
 
         dueDate: {
             type: Date,
-            required: true,
+            default: null,
             index: true,
         },
 
