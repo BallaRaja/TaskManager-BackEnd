@@ -10,15 +10,32 @@ import authMiddleware from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// === Public / Shared Routes ===
-router.get("/:userId", getTasksByUserId); // GET /api/tasks/694eee3de2f29c7c721d8050
+// ===============================================
+// PUBLIC ROUTE
+// ===============================================
+// Allow anyone to view tasks of a user (e.g., for shared public profile)
+// GET /api/tasks/:userId
+router.get("/:userId", getTasksByUserId);
 
-// === Protected Routes (Authenticated User Only) ===
+// ===============================================
+// PROTECTED ROUTES (Require Authentication)
+// ===============================================
 router.use(authMiddleware);
 
-router.get("/", getTasks);        // GET /api/tasks → current user's tasks
+// Get current user's tasks (filtered optionally by query params)
+// GET /api/tasks?status=pending&startDate=...&endDate=...
+router.get("/", getTasks);
+
+// Create a new task (requires taskListId in body)
+// POST /api/tasks
 router.post("/", createTask);
+
+// Update a task (can move to different taskListId)
+// PUT /api/tasks/:id
 router.put("/:id", updateTask);
+
+// Delete a task (automatically removes from taskList)
+// DELETE /api/tasks/:id
 router.delete("/:id", deleteTask);
 
 export default router;

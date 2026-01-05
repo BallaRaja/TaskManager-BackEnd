@@ -1,11 +1,14 @@
-import User from "../models/user.js";
-import Profile from "../models/profile.js";
+import User from "../models/User.js";
+import Profile from "../models/Profile.js";
+import TaskList from "../models/TaskList.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 
 /**
- * @desc Register user + create profile
+ * @desc Register user + create profile + create default "My Tasks" list
+ * @route POST /api/auth/register
+ * @access Public
  */
 export const register = async (req, res) => {
   const session = await mongoose.startSession();
@@ -22,24 +25,27 @@ export const register = async (req, res) => {
 
     email = email.toLowerCase().trim();
 
-    const existingUser = await User
-      .findOne({ email })
-      .session(session);
-
+    // Check if user already exists
+    const existingUser = await User.findOne({ email }).session(session);
     if (existingUser) {
       throw new Error("User already exists");
     }
 
+    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Create user
     const [newUser] = await User.create(
       [{ email, password: hashedPassword }],
       { session }
     );
 
+    const userIdStr = newUser._id.toString();
+
+    // Create profile
     await Profile.create(
       [{
-        userId: newUser._id.toString(),
+        userId: userIdStr,
         profile: {
           email,
           fullName: "User",
@@ -58,22 +64,31 @@ export const register = async (req, res) => {
       { session }
     );
 
+    // Create default "My Tasks" task list
+    await TaskList.create(
+      [{
+        userId: userIdStr,
+        title: "My Tasks",
+        taskIds: [],
+        isDefault: true,
+      }],
+      { session }
+    );
+
     await session.commitTransaction();
 
-    console.info("✅ [REGISTER] Success | userId:", newUser._id.toString());
+    console.info("✅ [REGISTER] Success | userId:", userIdStr);
 
     res.status(201).json({
       message: "User registered successfully",
       userId: newUser._id,
     });
-
   } catch (err) {
     await session.abortTransaction();
     console.error("❌ [REGISTER] Error:", err.message);
 
-    res.status(err.message === "User already exists" ? 400 : 500)
-      .json({ error: err.message });
-
+    const statusCode = err.message === "User already exists" ? 400 : 500;
+    res.status(statusCode).json({ error: err.message });
   } finally {
     session.endSession();
   }

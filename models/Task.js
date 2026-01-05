@@ -45,8 +45,8 @@ const taskSchema = new mongoose.Schema(
             index: true,
         },
         taskListId: {
-            type: String,
-            ref: "User",
+            type: mongoose.Schema.Types.ObjectId,  
+            ref: "TaskList",                      
             required: true,
             index: true,
         },

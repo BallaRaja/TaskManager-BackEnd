@@ -1,20 +1,6 @@
 // controllers/profileController.js
-import Profile from '../models/profile.js'; // ⚠️ keep lowercase to avoid casing issue
-
-// Helper to find profile by userId
-const findProfileByUserId = async (userId) => {
-    console.info(`[PROFILE] Searching profile for userId: ${userId}`);
-
-    const profile = await Profile.findOne({ userId });
-
-    if (!profile) {
-        console.warn(`[PROFILE] Profile NOT found for userId: ${userId}`);
-        throw new Error('Profile not found');
-    }
-
-    console.info(`[PROFILE] Profile found for userId: ${userId}`);
-    return profile;
-};
+import Profile from '../models/Profile.js';
+import TaskList from "../models/TaskList.js";
 
 // @desc    Get profile by userId
 // @route   GET /api/profile/:userId
@@ -47,37 +33,56 @@ export const getProfile = async (req, res) => {
 // @desc    Create new profile
 // @route   POST /api/profile
 // @access  Private
+
 export const createProfile = async (req, res) => {
     const { userId } = req.body;
+
     console.info(`[CREATE PROFILE] Attempt | userId: ${userId}`);
 
     try {
-        const existing = await Profile.findOne({ userId });
-
-        if (existing) {
+        // Check if profile already exists
+        const existingProfile = await Profile.findOne({ userId });
+        if (existingProfile) {
             console.warn(`[CREATE PROFILE] Profile already exists | userId: ${userId}`);
-            return res.status(400).json({ message: 'Profile already exists' });
+            return res.status(400).json({ message: "Profile already exists" });
         }
 
+        // Create the user profile
         const profile = await Profile.create({
             userId,
             profile: {
-                fullName: req.body.fullName || 'User',
+                fullName: req.body.fullName || "User",
                 email: req.body.email?.toLowerCase().trim(),
                 avatarUrl: req.body.avatarUrl,
-                bio: req.body.bio || '',
+                bio: req.body.bio || "",
             },
         });
 
-        console.info(`[CREATE PROFILE] Success | profileId: ${profile._id}`);
+        // Create default task list: "My Tasks"
+        try {
+            await TaskList.create({
+                userId,
+                title: "My Tasks",
+                taskIds: [],
+                isDefault: true,
+            });
 
+            console.info(`[CREATE PROFILE] Default task list "My Tasks" created | userId: ${userId}`);
+        } catch (taskListError) {
+            // Log but don't fail the whole profile creation if task list fails
+            console.error(`[CREATE PROFILE] Failed to create default task list | userId: ${userId}`, taskListError);
+            // Optionally: you could delete the profile here if you want strict consistency,
+            // but usually it's better to allow profile creation and fix task list later.
+        }
+
+        console.info(`[CREATE PROFILE] Success | profileId: ${profile._id}`);
         res.status(201).json({
             success: true,
             data: profile,
         });
     } catch (error) {
         console.error(`[CREATE PROFILE] Error | userId: ${userId}`, error.message);
-        res.status(400).json({ message: error.message || 'Invalid data' });
+        res.status(400).json({ message: error.message || "Invalid data" });
     }
 };
 
