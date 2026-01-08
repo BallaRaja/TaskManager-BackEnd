@@ -14,10 +14,10 @@ const taskListSchema = new mongoose.Schema(
       trim: true,
     },
 
-    taskIds: {
-      type: [String],        // 🔑 array of task _id as strings
-      default: [],
-    },
+    taskIds: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Task",
+    }],    
 
     isDefault: {
       type: Boolean,

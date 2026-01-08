@@ -1,5 +1,5 @@
 import Task from "../models/Task.js";
-
+import TaskList from "../models/TaskList.js"; 
 /**
  * @desc    Get all tasks for a user (optionally by date range)
  * @route   GET /api/tasks
@@ -79,20 +79,33 @@ export const getTasksByUserId = async (req, res) => {
   }
 };
 
-
 /**
- * @desc    Create a new task
- * @route   POST /api/tasks
- * @access  Private
+ * @desc Create a new task + add it to the specified taskList
+ * @route POST /api/tasks
+ * @access Private
  */
 export const createTask = async (req, res) => {
   try {
-    console.log("req.user =", req.user); // DEBUG
+    const userId = req.user.userId;
+    const { taskListId, ...taskData } = req.body;
 
+    if (!taskListId) {
+      return res.status(400).json({ message: "taskListId is required" });
+    }
+
+    // Create the task
     const task = await Task.create({
-      ...req.body,
-      userId: req.user.userId, // ✅ Fixed: was req.user.id
+      ...taskData,
+      userId,
+      taskListId,
     });
+
+    // Add task ID to the corresponding TaskList
+    await TaskList.findOneAndUpdate(
+      { _id: taskListId, userId }, // Ensure ownership
+      { $push: { taskIds: task._id } },
+      { new: true }
+    );
 
     res.status(201).json({
       success: true,
@@ -100,37 +113,56 @@ export const createTask = async (req, res) => {
     });
   } catch (error) {
     console.error("[CREATE TASK ERROR]", error);
-    res.status(400).json({ message: error.message });
+    res.status(400).json({ message: error.message || "Failed to create task" });
   }
 };
 
-
 /**
- * @desc    Update a task
- * @route   PUT /api/tasks/:id
- * @access  Private
+ * @desc Update a task (also handle taskListId change)
+ * @route PUT /api/tasks/:id
+ * @access Private
  */
 export const updateTask = async (req, res) => {
   try {
     const userId = req.user.userId;
     const taskId = req.params.id;
+    const updates = req.body;
 
-    const task = await Task.findOneAndUpdate(
-      { _id: taskId, userId }, // ownership check
-      req.body,
-      {
-        new: true,
-        runValidators: true,
-      }
+    // Find the original task first
+    const originalTask = await Task.findOne({ _id: taskId, userId });
+    if (!originalTask) {
+      return res.status(404).json({ message: "Task not found" });
+    }
+
+    // Check if taskListId is being changed
+    const newTaskListId = updates.taskListId;
+    const oldTaskListId = originalTask.taskListId.toString();
+
+    // Update the task
+    const updatedTask = await Task.findOneAndUpdate(
+      { _id: taskId, userId },
+      updates,
+      { new: true, runValidators: true }
     );
 
-    if (!task) {
-      return res.status(404).json({ message: "Task not found" });
+    // Handle taskListId change: remove from old list, add to new list
+    if (newTaskListId && newTaskListId !== oldTaskListId) {
+      // Remove from old task list
+      await TaskList.findOneAndUpdate(
+        { _id: oldTaskListId, userId },
+        { $pull: { taskIds: taskId } }
+      );
+
+      // Add to new task list
+      await TaskList.findOneAndUpdate(
+        { _id: newTaskListId, userId },
+        { $push: { taskIds: taskId } }
+      );
     }
 
     res.status(200).json({
       success: true,
-      data: task,
+      data: updatedTask,
     });
   } catch (error) {
     console.error("[UPDATE TASK ERROR]", error);
@@ -139,23 +171,26 @@ export const updateTask = async (req, res) => {
 };
 
 /**
- * @desc    Delete a task
- * @route   DELETE /api/tasks/:id
- * @access  Private
+ * @desc Delete a task + remove from its taskList
+ * @route DELETE /api/tasks/:id
+ * @access Private
  */
 export const deleteTask = async (req, res) => {
   try {
     const userId = req.user.userId;
     const taskId = req.params.id;
 
-    const task = await Task.findOneAndDelete({
-      _id: taskId,
-      userId,
-    });
-
+    // Find and delete the task
+    const task = await Task.findOneAndDelete({ _id: taskId, userId });
     if (!task) {
       return res.status(404).json({ message: "Task not found" });
     }
+
+    // Remove task ID from the associated TaskList
+    await TaskList.findOneAndUpdate(
+      { _id: task.taskListId, userId },
+      { $pull: { taskIds: taskId } }
+    );
 
     res.status(200).json({
       success: true,
