@@ -15,15 +15,24 @@ export const register = async (req, res) => {
   session.startTransaction();
 
   try {
-    let { email, password } = req.body;
+    let { name, email, password } = req.body;
 
     console.info("📝 [REGISTER] Request received");
+    console.info("📝 [REGISTER] Name:", name);
+    console.info("📝 [REGISTER] Email:", email);
 
-    if (!email || !password) {
-      throw new Error("Email and password are required");
+    if (!name || !email || !password) {
+      throw new Error("Name, email and password are required");
     }
 
+    name = name.trim();
     email = email.toLowerCase().trim();
+
+    console.info("📝 [REGISTER] Name after trim:", name);
+
+    if (!name) {
+      throw new Error("Name is required");
+    }
 
     // Check if user already exists
     const existingUser = await User.findOne({ email }).session(session);
@@ -42,13 +51,15 @@ export const register = async (req, res) => {
 
     const userIdStr = newUser._id.toString();
 
+    console.info("📝 [REGISTER] Creating profile with fullName:", name);
+
     // Create profile
-    await Profile.create(
+    const [newProfile] = await Profile.create(
       [{
         userId: userIdStr,
         profile: {
           email,
-          fullName: "User",
+          fullName: name,
           avatarUrl: "https://via.placeholder.com/150",
           bio: "",
         },
@@ -76,6 +87,7 @@ export const register = async (req, res) => {
     );
 
     await session.commitTransaction();
+    console.info("✅ [REGISTER] Profile created with fullName:", newProfile.profile.fullName);
 
     console.info("✅ [REGISTER] Success | userId:", userIdStr);
 
@@ -87,7 +99,12 @@ export const register = async (req, res) => {
     await session.abortTransaction();
     console.error("❌ [REGISTER] Error:", err.message);
 
-    const statusCode = err.message === "User already exists" ? 400 : 500;
+    const badRequestErrors = [
+      "User already exists",
+      "Name, email and password are required",
+      "Name is required",
+    ];
+    const statusCode = badRequestErrors.includes(err.message) ? 400 : 500;
     res.status(statusCode).json({ error: err.message });
   } finally {
     session.endSession();
