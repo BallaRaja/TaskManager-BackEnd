@@ -1,4 +1,5 @@
 import TaskList from "../models/TaskList.js";
+import Task from "../models/Task.js";
 
 /**
  * @desc    Get all task lists for a specific user
@@ -116,8 +117,8 @@ export const deleteTaskList = async (req, res) => {
       return res.status(404).json({ message: "Task list not found or unauthorized" });
     }
 
-    // Optional: If it was default, you might want to set another as default
-    // Or ensure "My Tasks" always exists — handle in frontend or separate logic
+    // Cascade-delete all tasks that belong to this list
+    await Task.deleteMany({ taskListId: id, userId });
 
     res.status(200).json({
       success: true,
