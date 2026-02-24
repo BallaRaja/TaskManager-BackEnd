@@ -1,5 +1,6 @@
 import multer from 'multer';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -8,7 +9,10 @@ const __dirname = path.dirname(__filename);
 // Configure storage
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, path.join(__dirname, '../uploads/profile-photos'));
+        const dest = path.join(__dirname, '../uploads/profile-photos');
+        // Auto-create directory if it doesn't exist (prevents ENOENT error)
+        fs.mkdirSync(dest, { recursive: true });
+        cb(null, dest);
     },
     filename: (req, file, cb) => {
         // Create unique filename: userId-timestamp-originalname
