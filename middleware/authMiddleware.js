@@ -1,29 +1,27 @@
 import jwt from "jsonwebtoken";
+import User from "../models/User.js";
 
-const authMiddleware = (req, res, next) => {
-  console.log("🔐 [AUTH] Protected route accessed");
-
+const authMiddleware = async (req, res, next) => {
   const authHeader = req.headers.authorization;
-  console.log("📥 Authorization header:", authHeader);
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    console.log("❌ Invalid Authorization header");
     return res.status(401).json({ message: "Unauthorized" });
   }
 
   const token = authHeader.split(" ")[1];
-  console.log("🔑 Token extracted");
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // ✅ decoded = { userId, iat, exp }
-    req.user = decoded;
+    // ✅ Production Check: Token Versioning for session invalidation
+    const user = await User.findById(decoded.userId).select("tokenVersion");
+    if (!user || user.tokenVersion !== decoded.tokenVersion) {
+      return res.status(401).json({ message: "Session expired. Please login again." });
+    }
 
-    console.log("✅ JWT verified for userId:", decoded.userId);
+    req.user = decoded;
     next();
   } catch (err) {
-    console.log("❌ JWT verification failed:", err.message);
     return res.status(401).json({ message: "Invalid or expired token" });
   }
 };
