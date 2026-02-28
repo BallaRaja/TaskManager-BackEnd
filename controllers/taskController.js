@@ -1,5 +1,5 @@
 import Task from "../models/Task.js";
-import TaskList from "../models/TaskList.js"; 
+import TaskList from "../models/TaskList.js";
 /**
  * @desc    Get all tasks for a user (optionally by date range)
  * @route   GET /api/tasks
@@ -137,6 +137,10 @@ export const updateTask = async (req, res) => {
     // Check if taskListId is being changed
     const newTaskListId = updates.taskListId;
     const oldTaskListId = originalTask.taskListId.toString();
+
+    if (updates.status && !['pending', 'completed'].includes(updates.status)) {
+      return res.status(400).json({ message: "Invalid status" });
+    }
 
     // Update the task
     const updatedTask = await Task.findOneAndUpdate(

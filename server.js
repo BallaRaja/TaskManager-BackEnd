@@ -3,6 +3,8 @@ dotenv.config();
 
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import path from "path";
 import { fileURLToPath } from 'url';
 import connectDB from "./config/db.js";
@@ -18,16 +20,32 @@ const app = express();
 connectDB();
 
 // Middleware
+app.use(helmet()); // 🛡️ Security headers
 app.use(cors());
 app.use(express.json());
+
+// 🕒 Rate Limiting
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per window
+  message: "Too many requests from this IP, please try again after 15 minutes"
+});
+app.use(generalLimiter);
+
+const authLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10, // Limit each IP to 10 requests per window for auth
+  message: "Too many login/OTP attempts, please try again after an hour"
+});
 
 // Serve static files from uploads directory
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 //Routes here
-app.use("/api/auth", authRoutes);
+app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/profile", profileRoutes);
-app.use("/api/task", taskRoutes);
+app.use("/api/tasks", taskRoutes); // Standard plural
+app.use("/api/task", taskRoutes);  // Alias for compatibility
 app.use("/api/taskList", taskListRoutes);
 
 // Health check route (VERY IMPORTANT)
