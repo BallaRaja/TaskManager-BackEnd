@@ -134,11 +134,44 @@ export const updateTask = async (req, res) => {
       return res.status(404).json({ message: "Task not found" });
     }
 
-    // Check if taskListId is being changed
+    // If the caller provided an `instanceDate` and the task is repeating,
+    // we treat the request as toggling/completing just that occurrence.
+    if (updates.instanceDate && originalTask.repeat) {
+      const inst = new Date(updates.instanceDate);
+      const status = updates.status;
+
+      // normalize by zeroing time portion for comparison
+      const sameDay = (a, b) =>
+        a.getFullYear() === b.getFullYear() &&
+        a.getMonth() === b.getMonth() &&
+        a.getDate() === b.getDate();
+
+      if (status === 'completed') {
+        // add to completedDates if not already present
+        if (!originalTask.completedDates.some(d => sameDay(d, inst))) {
+          originalTask.completedDates.push(inst);
+        }
+        originalTask.completedAt = new Date();
+      } else if (status === 'pending') {
+        originalTask.completedDates = originalTask.completedDates.filter(
+          d => !sameDay(d, inst)
+        );
+        // do not clear completedAt because that field is global
+      }
+
+      // if dueDate is also being changed (snooze), apply it
+      if (updates.dueDate) {
+        originalTask.dueDate = updates.dueDate;
+      }
+
+      const saved = await originalTask.save();
+      return res.status(200).json({ success: true, data: saved });
+    }
+
+    // Otherwise fall back to regular update logic
     const newTaskListId = updates.taskListId;
     const oldTaskListId = originalTask.taskListId.toString();
 
-    // Update the task
     const updatedTask = await Task.findOneAndUpdate(
       { _id: taskId, userId },
       updates,

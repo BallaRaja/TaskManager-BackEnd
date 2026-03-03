@@ -92,6 +92,15 @@ const taskSchema = new mongoose.Schema(
             index: true,
         },
 
+        // For recurring tasks we track which specific dates have been
+        // completed.  When the user marks a repeat instance done the
+        // frontend will push the date into this array rather than toggling
+        // the top‑level `status` field.
+        completedDates: {
+            type: [Date],
+            default: [],
+        },
+
         reminder: reminderSchema,
 
         repeat: repeatSchema,
