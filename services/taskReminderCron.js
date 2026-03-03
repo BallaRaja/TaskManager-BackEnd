@@ -118,17 +118,18 @@ async function send5MinReminders(now) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 3. MISSED DEADLINE NOTIFICATION
-// Window: tasks with dueDate between now-3min and now (just passed)
+// Fires for any pending task whose deadline was at least 5 minutes ago.
+// The 5-min grace period prevents overlap with the 5-min-before reminder.
+// missedSent flag ensures each task is notified exactly once.
 // ─────────────────────────────────────────────────────────────────────────────
 async function sendMissedReminders(now) {
-    const lo = new Date(now.getTime() - 3 * 60 * 1000);
-    const hi = new Date(now.getTime());
+    const fiveMinAgo = new Date(now.getTime() - 5 * 60 * 1000);
 
     const tasks = await Task.find({
         status: "pending",
         isArchived: { $ne: true },
-        dueDate: { $gte: lo, $lte: hi },
-        missedSent: { $ne: true },
+        dueDate: { $lte: fiveMinAgo }, // deadline passed at least 5 min ago
+        missedSent: { $ne: true },     // not yet notified
     }).select("_id title dueDate userId");
 
     for (const task of tasks) {

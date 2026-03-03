@@ -105,8 +105,9 @@ export const extendTaskDeadline = async (req, res) => {
             return res.status(404).json({ message: "Task not found" });
         }
 
-        const currentDue = task.dueDate ? new Date(task.dueDate) : new Date();
-        const newDueDate = new Date(currentDue.getTime() + 30 * 60 * 1000); // +30 min
+        // Always extend from NOW (current time) + 30 min, not from the stored dueDate.
+        // This ensures the new deadline is always in the future.
+        const newDueDate = new Date(Date.now() + 30 * 60 * 1000); // now + 30 min
 
         const updated = await Task.findByIdAndUpdate(
             taskId,
