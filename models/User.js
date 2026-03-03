@@ -7,6 +7,8 @@ const userSchema = new mongoose.Schema({
   otp: { type: String },
   otpExpires: { type: Date },
   tokenVersion: { type: Number, default: 0 },
+  // FCM device tokens for real push notifications
+  fcmTokens: { type: [String], default: [] },
 });
 
 const User = mongoose.model("User", userSchema);

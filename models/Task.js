@@ -45,8 +45,8 @@ const taskSchema = new mongoose.Schema(
             index: true,
         },
         taskListId: {
-            type: mongoose.Schema.Types.ObjectId,  
-            ref: "TaskList",                      
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "TaskList",
             required: true,
             index: true,
         },
@@ -95,6 +95,13 @@ const taskSchema = new mongoose.Schema(
         reminder: reminderSchema,
 
         repeat: repeatSchema,
+
+        // ── Notification tracking ─────────────────────────────────────────────
+        // Three separate flags so each notification fires exactly once.
+        // All reset to false whenever dueDate is changed or task is re-opened.
+        reminder30Sent: { type: Boolean, default: false, index: true }, // 30-min before
+        reminder5Sent: { type: Boolean, default: false, index: true }, // 5-min before
+        missedSent: { type: Boolean, default: false, index: true }, // after deadline
     },
     {
         timestamps: true, // adds createdAt & updatedAt

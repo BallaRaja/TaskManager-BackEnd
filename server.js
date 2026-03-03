@@ -8,16 +8,21 @@ import rateLimit from "express-rate-limit";
 import path from "path";
 import { fileURLToPath } from 'url';
 import connectDB from "./config/db.js";
+import { initFirebase } from "./config/firebase.js";
+import { startTaskReminderCron } from "./services/taskReminderCron.js";
 import authRoutes from "./routes/authRoutes.js";
 import profileRoutes from "./routes/profileRoutes.js";
 import taskRoutes from "./routes/taskRoutes.js";
 import taskListRoutes from "./routes/taskListRoutes.js";
+import notificationRoutes from "./routes/notificationRoutes.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 connectDB();
+initFirebase();        // 🔥 Initialize Firebase Admin SDK
+startTaskReminderCron(); // ⏰ Start 2-min task reminder cron
 
 // Middleware
 app.use(helmet()); // 🛡️ Security headers
@@ -47,6 +52,7 @@ app.use("/api/profile", profileRoutes);
 app.use("/api/tasks", taskRoutes); // Standard plural
 app.use("/api/task", taskRoutes);  // Alias for compatibility
 app.use("/api/taskList", taskListRoutes);
+app.use("/api/notifications", notificationRoutes); // 🔔 Real push notifications
 
 // Health check route (VERY IMPORTANT)
 app.get("/", (req, res) => {

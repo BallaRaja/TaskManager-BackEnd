@@ -142,6 +142,20 @@ export const updateTask = async (req, res) => {
       return res.status(400).json({ message: "Invalid status" });
     }
 
+    // If dueDate is being changed, reset ALL reminder flags so fresh notifications fire
+    if (updates.dueDate && updates.dueDate !== originalTask.dueDate?.toISOString()) {
+      updates.reminder30Sent = false;
+      updates.reminder5Sent = false;
+      updates.missedSent = false;
+    }
+
+    // Also reset when task is re-opened (pending) after being completed
+    if (updates.status === 'pending') {
+      updates.reminder30Sent = false;
+      updates.reminder5Sent = false;
+      updates.missedSent = false;
+    }
+
     // Update the task
     const updatedTask = await Task.findOneAndUpdate(
       { _id: taskId, userId },
