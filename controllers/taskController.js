@@ -142,6 +142,15 @@ export const updateTask = async (req, res) => {
       return res.status(400).json({ message: "Invalid status" });
     }
 
+    // Prevent marking a future task as completed
+    if (updates.status === 'completed' && originalTask.dueDate) {
+      const now = new Date();
+      const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+      if (new Date(originalTask.dueDate) > todayEnd) {
+        return res.status(400).json({ message: "Cannot complete a task whose due date is in the future" });
+      }
+    }
+
     // If dueDate is being changed, reset ALL reminder flags so fresh notifications fire
     if (updates.dueDate && updates.dueDate !== originalTask.dueDate?.toISOString()) {
       updates.reminder30Sent = false;

@@ -69,6 +69,16 @@ export const markTaskDone = async (req, res) => {
         const { taskId } = req.params;
         const userId = req.user.userId;
 
+        // Prevent marking a future task as completed
+        const existingTask = await Task.findOne({ _id: taskId, userId });
+        if (existingTask && existingTask.dueDate) {
+            const now = new Date();
+            const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+            if (new Date(existingTask.dueDate) > todayEnd) {
+                return res.status(400).json({ message: "Cannot complete a task whose due date is in the future" });
+            }
+        }
+
         const task = await Task.findOneAndUpdate(
             { _id: taskId, userId },
             {
