@@ -91,6 +91,10 @@ const taskSchema = new mongoose.Schema(
             default: null,
             index: true,
         },
+        status: {
+  type: String,
+  enum: ['pending', 'in_progress', 'completed'],
+  default: 'pending' },
 
         reminder: reminderSchema,
 
